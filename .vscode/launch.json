@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "StockStrategy",
+            "type": "node",
+            "request": "launch",
+            "args": [
+                "${workspaceRoot}/index.ts"
+            ],
+            "runtimeArgs": [
+                "--nolazy",
+                "-r",
+                "ts-node/register"
+            ],
+            "sourceMaps": true,
+            "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "env": {
+                "PORT": "3001",
+                "MODE": "local",
+            },
+            "console": "externalTerminal"
+        }
+    ]
+}

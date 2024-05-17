@@ -1,0 +1,4 @@
+.env
+.env.local
+src/constants/common.ts
+.build/src/constants/common.js
