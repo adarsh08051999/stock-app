@@ -9,7 +9,7 @@ import { UpdateDbService } from '../service/updateDb';
 
 export class OrderController {
     private calculatePrice(averagePrice: number) {
-        averagePrice = 1.08* averagePrice;
+        averagePrice = 1.0999* averagePrice;
         let number = Math.floor(averagePrice);
         let firstTwoDecimalDigits = (Math.floor(averagePrice*100))%100;
         if( firstTwoDecimalDigits <=15){
@@ -100,7 +100,6 @@ export class OrderController {
 
     public placeOrder = async (request: Request, response: Response): Promise<void> => {
         try {
-            this.creds = await this.loginService.login();
             let stockId = request.query.stockId;
             let present = await this.alreadyInPortfolio(stockId);
             if(present && (!request.query.admin)){
@@ -116,7 +115,7 @@ export class OrderController {
                 response.status(400).send(`invalid request ${JSON.stringify(request.query)}`);
                 return;
             }
-            let res: Object = await this.orderService.placeOrder(this.creds,jData);
+            let res: Object = await this.orderService.placeOrder(jData);
             response.status(200).send(res);
         } catch (err) {
             const error: VError = new VError(`ERR in Order Controller route ${(err as any)?.message}`);
@@ -125,7 +124,6 @@ export class OrderController {
     };
 
     public placeOrderFunctional = async (stockId:number,query:any): Promise<void> => {
-            this.creds = await this.loginService.login();
             console.log(`Trying to place order for ${JSON.stringify(query)}`);
             try{
                 let present = await this.alreadyInPortfolio(stockId);
@@ -139,7 +137,7 @@ export class OrderController {
             }
             
             let jData:JData = this.prepareMktBuyJData(query);
-            await this.orderService.placeOrder(this.creds,jData);
+            await this.orderService.placeOrder(jData);
             await this.updateDbService.updateDWHSingleEntry(stockId);
     };
 
@@ -167,7 +165,7 @@ export class OrderController {
                 if(!query.stock){continue;}
                 let jData:JData = this.prepareLimitSellJData(query);
                 try{
-                    await this.orderService.placeOrder(this.creds,jData);
+                    await this.orderService.placeOrder(jData);
                 }
                 catch(err){
                     count = count+1;

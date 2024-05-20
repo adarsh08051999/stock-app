@@ -1,4 +1,6 @@
 .env
 .env.local
+.env.prod
 src/constants/common.ts
-.build/src/constants/common.js
+.build
+node_modules

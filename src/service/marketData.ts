@@ -36,3 +36,4 @@ export class MarketDataService {
     return {highest_negative_change: change, current_change: curr_change,current_price: (dayMarketIndexLowest.iv)/100, yesterday_closing_price: (dayMarketIndexLowest.ic)/100, lowest_today_price: (dayMarketIndexLowest.lowPrice)/100};
   };
 }
+// use LLD here --- 

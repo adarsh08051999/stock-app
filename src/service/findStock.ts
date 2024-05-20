@@ -1,5 +1,6 @@
 import { HSMWebSocket } from "../controllers/HSWebSocket";
 import {
+  FindStockResponse,
   StockDetails,
   StockDetailsExtended,
   TwoStockDetails,
@@ -108,10 +109,9 @@ export class FindStockService extends DBQuery {
     return { firstStock: eligibleStocks[0], secondStock: eligibleStocks[1] };
   }
 
-  public findStockAndBudget = async (
+  public findStockOld = async (
     type: boolean,
-    customDays: number,
-    all?: boolean
+    customDays: number
   ): Promise<TwoStockDetails> => {
     let eligibleStocks: StockDetails[] = await this.getEligibleStockToBuy();
     let loggingObj: any = {};
@@ -154,11 +154,40 @@ export class FindStockService extends DBQuery {
     topPickStock.total_stock_dwh = loggingObj?.total_stock_dwh;
     topPickStock.kotak_stock_data = loggingObj?.kotak_stock_data;
     topPickStock.old_stock_data = loggingObj?.old_stock_data;
-    if (all) {
-      topPickStock.extras = eligibleStocksUpdated;
-    }
+    topPickStock.extras = eligibleStocksUpdated;
 
     return topPickStock;
+  };
+
+  public findStock = async (): Promise<FindStockResponse> => {
+    let eligibleStocks: StockDetails[] = await this.getEligibleStockToBuy();
+    let loggingObj: any = {};
+    //algo to fetch the drop of each stock and find the most deserving buying stock--
+    let eligibleStocksUpdated = await this.enrichWithCurrentStat(
+      eligibleStocks,
+      loggingObj,
+      7
+    );
+
+    // sort based on market change--
+    eligibleStocksUpdated.sort((a, b) => {
+      if (a.currentChange && b.currentChange) {
+        if (a.currentChange < b.currentChange) {
+          return -1;
+        } else if (a.currentChange > b.currentChange) {
+          return 1;
+        }
+      }
+      return 0;
+    });
+
+    let allStocks:FindStockResponse = {
+      stocks: eligibleStocksUpdated,
+      total_stock_dwh: loggingObj?.total_stock_dwh,
+      kotak_stock_data: loggingObj?.kotak_stock_data,
+      old_stock_data: loggingObj?.old_stock_data,
+    }
+    return allStocks;
   };
 
   public getDates = async (): Promise<any> => {
