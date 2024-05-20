@@ -33,6 +33,4 @@ export class LoginController {
         }
     }
 
-
-    
 }

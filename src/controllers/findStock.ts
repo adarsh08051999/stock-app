@@ -15,7 +15,10 @@ export class FindStockController {
             let type:boolean = request.query.filter ? true : false;
             let all:boolean = request.query.all ? true : false;
             let days:number = request.query.days ? parseInt(request.query.days as string) : 7;
-            let res:TwoStockDetails = await this.findStockService.findStockAndBudget(type,days,all);
+            let res:TwoStockDetails = await this.findStockService.findStockOld(type,days);
+            if(!all){
+                res.extras = null;
+            }
             response.status(200).send(JSON.stringify(res));
         }
         catch(err){

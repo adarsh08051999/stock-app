@@ -51,7 +51,6 @@ export class Router {
     router.get("/sellOrder", orderController.sellOrder);
     router.get("/resetSold", updateDbController.resetSold);
     router.get("/updateDb", updateDbController.updateDb);
-    router.get("/3pm", brainController.placeOrder3pm);
     router.get("/deleteOld", updateDbController.deleteOldData);
 
     // ----
