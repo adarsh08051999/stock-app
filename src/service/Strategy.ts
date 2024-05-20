@@ -1,5 +1,9 @@
 import { OrderController } from "../controllers/order";
-import { FindStockResponse, StockDetailsExtended, TwoStockDetails } from "../models/common";
+import {
+  FindStockResponse,
+  StockDetailsExtended,
+  TwoStockDetails,
+} from "../models/common";
 import { FindStockService } from "./findStock";
 import { LoginService } from "./login";
 import { MarketDataService } from "./marketData";
@@ -39,7 +43,7 @@ export abstract class Strategy {
 
   public async startProcess() {
     let marketData: any = await this.marketDataService.getMarketIndexData();
-    this.doLog(`The Market data got is - ${marketData}`);
+    this.doLog(`The Market data got is - ${JSON.stringify(marketData)}`);
     await this.process(marketData);
   }
 }
@@ -227,25 +231,30 @@ export class Strategy2 extends Strategy {
       stocks.stocks.shift();
     }
 
-    let chosenStocks:StockDetailsExtended[] = stocks.stocks.slice(0,countOfStock);
+    let chosenStocks: StockDetailsExtended[] = stocks.stocks.slice(
+      0,
+      countOfStock
+    );
     this.doLog("Chosen stock - " + JSON.stringify(chosenStocks));
     let successOrderCount = 0;
-    for(const stock of chosenStocks){
-        try {
-            await this.orderController.placeOrderFunctional(
-              stock.stockId,
-              {
-                dq: 1,
-                quantity: 1,
-                stock: stock.stockSymbol,
-                customMessage: `stock using strategy ${this.strategyName} - is ${stock.stockName}`,
-              }
-            );
-            this.doLog(`Order placed for -1st ${stock.stockId} `);
-            successOrderCount = successOrderCount+1;
-          } catch (err) {
-            this.doLog(`Failed to place order-1 for ${stock.stockId}: error-  ${(err as any).message}`);
-          }
+    for (const stock of chosenStocks) {
+      try {
+        successOrderCount = successOrderCount + 1;
+        await this.orderController.placeOrderFunctional(stock.stockId, {
+          dq: 1,
+          quantity: 1,
+          stock: stock.stockSymbol,
+          customMessage: `stock using strategy ${this.strategyName} - is ${stock.stockName}`,
+        });
+        this.doLog(`Order placed for -1st ${stock.stockId} `);
+      } catch (err) {
+        this.doLog(
+          `Failed to place order-1 for ${stock.stockId}: error-  ${
+            (err as any).message
+          }`
+        );
+        successOrderCount = successOrderCount - 1;
+      }
     }
     return successOrderCount;
   }
@@ -256,7 +265,6 @@ export class Strategy2 extends Strategy {
     if (stockAlreadyBought >= this.stockCountToBuy) {
       return;
     }
-    //
 
     let leftToBuy: number = this.stockCountToBuy - stockAlreadyBought;
 
