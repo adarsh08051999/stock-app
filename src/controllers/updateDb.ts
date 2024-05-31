@@ -122,8 +122,8 @@ export class UpdateDbController {
         }
       }
 
-      await this.updateDbService.updateDb();
-      response.status(200).send("Successfully Updated");
+      this.updateDbService.updateDb();
+      response.status(200).send("Successfully Invoked the process");
     } catch (err) {
       const error: VError = new VError(
         `ERR in Update Db Controller ---  route ${(err as any)?.message}`
