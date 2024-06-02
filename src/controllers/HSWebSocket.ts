@@ -66,7 +66,7 @@ function getStatus(c: any, d: any) {
   return status;
 }
 
-function prepareSubsUnSubsRequestForStock(c:string, d:any, e:any, a:any) {
+function prepareSubsUnSubsRequestForStock(c: string, d: any, e: any, a: any) {
   let dataArr = getScripByteArray(c, e);
   let buffer = new ByteData(dataArr.length + 11);
   buffer.markStartOfMsg();
@@ -82,29 +82,29 @@ function prepareSubsUnSubsRequestForStock(c:string, d:any, e:any, a:any) {
   return buffer.getBytes();
 }
 function getScripByteArray(c: string, a: any) {
-    // split for multiple index scrips
-    let scripArray = c.split("&");
-    let scripsCount = scripArray.length; // count of index --- 
-  
-  
-    let dataLen = 0;
-    for (let index = 0; index < scripsCount; index++) {
-      scripArray[index] = a + "|" + scripArray[index];
-      dataLen += scripArray[index].length + 1;
+  // split for multiple index scrips
+  let scripArray = c.split("&");
+  let scripsCount = scripArray.length; // count of index --- 
+
+
+  let dataLen = 0;
+  for (let index = 0; index < scripsCount; index++) {
+    scripArray[index] = a + "|" + scripArray[index];
+    dataLen += scripArray[index].length + 1;
+  }
+  let bytes = new Uint8Array(dataLen + 2);
+  let pos = 0;
+  bytes[pos++] = (scripsCount >> 8) & 255;
+  bytes[pos++] = scripsCount & 255;
+  for (let index = 0; index < scripsCount; index++) {
+    let currScrip = scripArray[index];
+    let scripLen = currScrip.length;
+    bytes[pos++] = scripLen & 255;
+    for (let strIndex = 0; strIndex < scripLen; strIndex++) {
+      bytes[pos++] = currScrip.charCodeAt(strIndex);
     }
-    let bytes = new Uint8Array(dataLen + 2);
-    let pos = 0;
-    bytes[pos++] = (scripsCount >> 8) & 255;
-    bytes[pos++] = scripsCount & 255;
-    for (let index = 0; index < scripsCount; index++) {
-      let currScrip = scripArray[index];
-      let scripLen = currScrip.length;
-      bytes[pos++] = scripLen & 255;
-      for (let strIndex = 0; strIndex < scripLen; strIndex++) {
-        bytes[pos++] = currScrip.charCodeAt(strIndex);
-      }
-    }
-    return bytes;
+  }
+  return bytes;
 }
 
 function prepareSubsUnSubsRequest(c: string, d: number, e: string, a: number) {
@@ -176,15 +176,17 @@ export class HSMWebSocket {
   public ws: WebSocket | null;
   static commonURL: string = "wss://mlhsm.kotaksecurities.com";
   private creds: ApiCredentials;
-  private intermediateVariableForMarketIndex: any;
-  private intermediateVariableForStock:any;
+  private intermediateVariableForNiftyIndex: any;
+  private intermediateVariableForSensexIndex: any;
+  private intermediateVariableForStock: any;
   protected loginService: LoginService;
   static channels: number[] = [];
   private ackNum: number;
   private counter: number;
 
   constructor() {
-    this.intermediateVariableForMarketIndex ={};
+    this.intermediateVariableForNiftyIndex = {};
+    this.intermediateVariableForSensexIndex = {};
     this.counter = 0;
     this.ackNum = 0;
     this.OPEN = 0;
@@ -322,35 +324,58 @@ export class HSMWebSocket {
   public onerror() {
     console.log("[Socket]: Error !\n");
   }
-  public getIntermediateMarketIndexPrice(){
-    return this.intermediateVariableForMarketIndex;
+  public getIntermediateNiftyIndexPrice() {
+    return this.intermediateVariableForNiftyIndex;
   }
-  public getIntermediateStockPrice(){
+  public getIntermediateSensexIndexPrice() {
+    return this.intermediateVariableForSensexIndex;
+  }
+
+  public getIntermediateStockPrice() {
     return this.intermediateVariableForStock;
   }
-  public setIntermediateMarketIndexPrice(){
-    this.intermediateVariableForMarketIndex = {};
+  public setIntermediateNiftyIndexPrice() {
+    this.intermediateVariableForNiftyIndex = {};
   }
-  public setIntermediateStockPrice(){
+  public setIntermediateSensexIndexPrice() {
+    this.intermediateVariableForSensexIndex = {};
+  }
+
+  public setIntermediateStockPrice() {
     this.intermediateVariableForStock = {};
   }
 
   public onmessage = (msg: string) => {
     // console.log("[Res]: " + msg + "\n"); // commenting for log seeing 
-    if(!msg){return;}
+    if (!msg) { return; }
     const result = JSON.parse(msg);
 
-    for(const x of result){
-        if(x.stockSymbol && x.stockSymbol === 'Nifty 50'){
-            this.intermediateVariableForMarketIndex[x.stockSymbol] = x;
-        }
+    // for nifty index data
+    for (const x of result) {
+      if (x.stockSymbol && x.stockSymbol === 'Nifty 50') {
+        this.intermediateVariableForNiftyIndex[x.stockSymbol] = x;
+      }
     }
 
-    for(const x of result){
-        if(x.stockSymbol && x.price && x.stockSymbol !== 'Nifty 50'){
-            this.intermediateVariableForStock[x.stockSymbol] = x.price;
-        }
+    // for sensex data
+    for (const x of result) {
+      if (x.stockSymbol && x.stockSymbol === 'SENSEX') {
+        this.intermediateVariableForSensexIndex[x.stockSymbol] = x;
+      }
     }
+
+
+
+    // for stocks data
+    for (const x of result) {
+      if (x.stockSymbol && x.price && x.stockSymbol !== 'Nifty 50' && x.stockSymbol !== 'SENSEX') {
+        this.intermediateVariableForStock[x.stockSymbol] = x.price;
+      }
+    }
+
+
+
+
   };
 
   public startServer() {
@@ -395,7 +420,7 @@ export class HSMWebSocket {
     this.ws = null;
   }
 
-  public async subscribeIndexScrip() {
+  public async subscribeNiftyIndexScrip() {
     let req = prepareSubsUnSubsRequest(
       "nse_cm|Nifty 50",
       BinRespTypes.SUBSCRIBE_TYPE,
@@ -411,9 +436,25 @@ export class HSMWebSocket {
     }
   }
 
+  public async subscribeSensexIndexScrip() {
+    let req = prepareSubsUnSubsRequest(
+      "bse_cm|SENSEX",
+      BinRespTypes.SUBSCRIBE_TYPE,
+      "if",
+      3
+    );
+    if (this.ws && req) {
+      this.ws.send(req);
+    } else {
+      console.error(
+        "Unable to send request !, Reason: Connection faulty or request not valid !"
+      );
+    }
+  }
 
 
-  public async subscribeStockScrip(s:string) {
+
+  public async subscribeStockScrip(s: string) {
     let req = prepareSubsUnSubsRequestForStock(
       s,
       BinRespTypes.SUBSCRIBE_TYPE,
@@ -429,7 +470,7 @@ export class HSMWebSocket {
     }
   }
 
-  public async unsubscribeStockScrip(s:string) {
+  public async unsubscribeStockScrip(s: string) {
     let req = prepareSubsUnSubsRequestForStock(
       s,
       BinRespTypes.UNSUBSCRIBE_TYPE,
@@ -458,36 +499,36 @@ export class HSMWebSocket {
     } else if (type === BinRespTypes.SUBSCRIBE_TYPE) {
       return getResponseForIndexSubscribe(type, e, pos);
     } else if (type === BinRespTypes.DATA_TYPE) {
-      return this.getResponseForData(e, pos);
+      return this.getResponseForData(e, pos); 
     }
   }
 
-  public processForIndex(e:string, pos: number,fcount:number) {
-    let stockSymbol: string = "",highPrice:number|undefined,iv:number|undefined,lowPrice:number|undefined,openingPrice:number|undefined;
-    let mul,prec,cng,stockExchange,ic;
+  public processForIndex(e: string, pos: number, fcount: number) {
+    let stockSymbol: string = "", highPrice: number | undefined, iv: number | undefined, lowPrice: number | undefined, openingPrice: number | undefined;
+    let mul, prec, cng, stockExchange, ic;
 
     for (let index = 0; index < fcount; index++) {
       let fvalue = buf2Long(e.slice(pos, pos + 4));
       pos += 4;
-      if(index === 2) {
+      if (index === 2) {
         iv = fvalue;
       }
-      else if(index === 3){
+      else if (index === 3) {
         ic = fvalue;
       }
       else if (index === 5) {
         highPrice = fvalue; // change here---
       }
-      else if(index === 6){
+      else if (index === 6) {
         lowPrice = fvalue;
       }
-      else if(index === 7){
+      else if (index === 7) {
         openingPrice = fvalue;
       }
-      else if(index === 8){
+      else if (index === 8) {
         mul = fvalue;
       }
-      else if(index === 9){
+      else if (index === 9) {
         prec = fvalue;
       }
     }
@@ -504,14 +545,14 @@ export class HSMWebSocket {
       if (fid === 52) {
         stockSymbol = strVal;
       }
-      else if(fid === 53){
+      else if (fid === 53) {
         stockExchange = strVal
       }
     }
-    return { stockSymbol,highPrice,iv,ic,lowPrice,openingPrice,mul,prec,cng,stockExchange };
+    return { stockSymbol, highPrice, iv, ic, lowPrice, openingPrice, mul, prec, cng, stockExchange };
   }
 
-  public processForStock(e:string, pos: number,fcount:number) {
+  public processForStock(e: string, pos: number, fcount: number) {
     let stockSymbol;
     let price;
 
@@ -533,12 +574,12 @@ export class HSMWebSocket {
       pos++;
       let strVal = buf2String(e.slice(pos, pos + dataLen));
       pos += dataLen;
-      if(fid === 52){
+      if (fid === 52) {
         stockSymbol = strVal
       }
     }
 
-    return { stockSymbol,price };
+    return { stockSymbol, price };
   }
 
 
@@ -566,11 +607,11 @@ export class HSMWebSocket {
         let fcount = buf2Long(e.slice(pos, pos + 1));
         pos++;
         // console.log(topicName);
-        if(topicName === 'if|nse_cm|Nifty 50'){
-          result =  this.processForIndex(e,pos,fcount);
+        if (topicName === 'if|nse_cm|Nifty 50' || topicName === 'if|bse_cm|SENSEX') {
+          result = this.processForIndex(e, pos, fcount);
         }
-        else{
-          let price,stockSymbol;
+        else {
+          let price, stockSymbol;
           for (let index = 0; index < fcount; index++) {
             let fvalue = buf2Long(e.slice(pos, pos + 4));
             pos += 4;
@@ -578,10 +619,10 @@ export class HSMWebSocket {
               price = fvalue;
             }
           }
-  
+
           fcount = buf2Long(e.slice(pos, pos + 1));
           pos++;
-  
+
           for (let index = 0; index < fcount; index++) {
             let fid = buf2Long(e.slice(pos, pos + 1));
             pos++;
@@ -593,7 +634,7 @@ export class HSMWebSocket {
               stockSymbol = strVal;
             }
           }
-          result = {price,stockSymbol};
+          result = { price, stockSymbol };
         }
         d.push(result);
       }
