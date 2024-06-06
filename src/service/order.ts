@@ -9,20 +9,12 @@ var qs = require("qs");
 
 export class OrderService extends DBQuery {
   protected loginService: LoginService;
-  public lastDeleted: any;
   constructor() {
     super();
     this.loginService = new LoginService();
   }
 
   public placeOrder = async (jData: JData): Promise<Object> => {
-
-    let curr_date:any = new Date();
-    if(!this.lastDeleted || (Math.abs(curr_date - this.lastDeleted)/60000) > 30){
-      await this.loginService.deleteCreds();
-      this.lastDeleted = curr_date;
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    };
     
     let creds: ApiCredentials = await this.loginService.login();
 

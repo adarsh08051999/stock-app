@@ -236,6 +236,7 @@ export class Strategy2 extends Strategy {
       countOfStock
     );
     this.doLog("Chosen stock - " + JSON.stringify(chosenStocks));
+    await this.loginService.deleteCreds();
     let successOrderCount = 0;
     for (const stock of chosenStocks) {
       try {

@@ -143,6 +143,7 @@ export class OrderController {
 
     public sellOrder = async (request: Request, response: Response): Promise<void> => {
         try {
+            await this.loginService.deleteCreds();
             this.creds = await this.loginService.login();
 
             let portfolio:PortfolioResp[] = await this.portfolioService.getPortfolio(this.creds);
@@ -150,7 +151,6 @@ export class OrderController {
             for(let x of portfolio){
                 stockIds.push(parseInt(x.exchangeIdentifier));
             }
-
 
             let stockNamesIdMap = await this.orderService.fetchStockSymbolFromStockIds(stockIds);
             let count = 0;
@@ -160,7 +160,7 @@ export class OrderController {
                     quantity: x.quantity,
                     stock: stockNamesIdMap[parseInt(x.exchangeIdentifier)],
                     price: this.calculatePrice(x.averagePrice),
-                    customMessage: `Sell Order for ->${x.symbol}`
+                    customMessage: `Sell Order for.. ->${x.symbol}`
                 }
                 if(!query.stock){continue;}
                 let jData:JData = this.prepareLimitSellJData(query);
@@ -169,7 +169,7 @@ export class OrderController {
                 }
                 catch(err){
                     count = count+1;
-                    console.log(`Error in placing sell Order for ${x.symbol}`)
+                    console.log(`Error in placing sell Order for ${x.symbol} msg= ${(err as any)?.message}`);
                 }
             }
 
