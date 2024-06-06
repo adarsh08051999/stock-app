@@ -7,7 +7,7 @@ import { jwtDecode } from "jwt-decode";
 import qs from "qs";
 import { EmailService } from './email';
 
-export class LoginService {
+class LoginService {
     static accessToken: string|null;
     static token:string|null;
     static sid:string|null;
@@ -29,9 +29,14 @@ export class LoginService {
 
 
     public login = async (): Promise<ApiCredentials> => {
+        let accessToken:string|null = LoginService.accessToken;
+        let token:string|null = LoginService.token;
+        let sid:string|null = LoginService.sid;
+        let userId:string|null|undefined = LoginService.userId;
+        let hsServerId:string|null|undefined = LoginService.hsServerId;
 
-        if(LoginService.accessToken && LoginService.token && LoginService.sid && LoginService.userId && LoginService.hsServerId){
-            return {token: LoginService.token,sid: LoginService.sid, accessToken: LoginService.accessToken, userId: LoginService.userId , hsServerId: LoginService.hsServerId};
+        if(accessToken && token && sid && userId && hsServerId){
+            return {token,sid, accessToken, userId, hsServerId};
         }
         try{
             let responseFromConsumerKeyForAccessToken: OAuth2Response = await this.OAuthUsingConsumerData();
@@ -41,16 +46,23 @@ export class LoginService {
             let tempToken = responseFromValidateReq.token;
             let tempSid = responseFromValidateReq.sid;
             LoginService.userId = jwtDecode(tempToken)?.sub;
+
+            console.log("Requesting OTP Generation...");
             let isOtpGenerated:Boolean = false;
-            isOtpGenerated = await this.generateOtpOnEmail();
-            console.log("Generated OTP");
-            await new Promise(resolve => setTimeout(resolve, 5000)); // pause of 5 sec for OTP recieve -
+            try{
+                isOtpGenerated = await this.generateOtpOnEmail();
+            }
+            catch(err){
+                console.log(`OTP generate API threw error`);
+            }
+            console.log("OTP Generation req made finished...");
+            await new Promise(resolve => setTimeout(resolve, 8000)); // pause of 5 sec for OTP recieve -
             let otp = await this.emailService.getOtpFromEmail();
             console.log(`OTP IS ${otp}`);
             let responseFromValidateReqUsingOtp: ValidateResponse = await this.generateTokenUsingOtpAndEnableOrder(otp,tempToken,tempSid);
             LoginService.token = responseFromValidateReqUsingOtp.token;
             LoginService.sid = responseFromValidateReqUsingOtp.sid;
-            LoginService.hsServerId = responseFromValidateReqUsingOtp.hsServerId;
+            LoginService.hsServerId = responseFromValidateReqUsingOtp.hsServerId; 
             return {token: LoginService.token,sid: LoginService.sid, accessToken: LoginService.accessToken, userId: LoginService.userId , hsServerId: LoginService.hsServerId};
         }
         catch(err){
@@ -159,4 +171,6 @@ export class LoginService {
     }
 
 }
+const loginServiceObj = new LoginService();
+export default loginServiceObj;
 // use LLD to have a HAS A Relation with User service -- 

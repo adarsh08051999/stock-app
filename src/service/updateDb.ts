@@ -2,16 +2,13 @@ import { DBQuery } from "./dbQuery";
 import {PortfolioResp, StockShortData} from "../models/common";
 import  {HSMWebSocket} from '../controllers/HSWebSocket';
 import { PortfolioService } from "./portfolio";
-import { LoginService } from "./login";
+import loginServiceObj from "./login";
 
 export class UpdateDbService extends DBQuery {
   protected portfolioService: PortfolioService;
-  protected loginService: LoginService;
   constructor() {
     super();
-    this.loginService = new LoginService();
     this.portfolioService = new PortfolioService();
-
   }
 
   private async getDataOfList(list: string[]): Promise<any>{
@@ -67,7 +64,7 @@ export class UpdateDbService extends DBQuery {
   };
 
   public updateBought = async (): Promise<string[]> => {
-    let creds = await this.loginService.login();
+    let creds = await loginServiceObj.login();
     let portfolio:PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
     let stockIds:string[]=[];
     for(const x of portfolio){
@@ -78,7 +75,7 @@ export class UpdateDbService extends DBQuery {
   };
 
   public resetSold = async (): Promise<any> => {
-    let creds = await this.loginService.login();
+    let creds = await loginServiceObj.login();
     let portfolio:PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
     let stockIds:string[]=[];
     for(const x of portfolio){

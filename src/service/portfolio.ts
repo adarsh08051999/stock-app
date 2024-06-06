@@ -24,6 +24,7 @@ export class PortfolioService {
       const res: AxiosResponse = await axios(reqConfig);
       if (res.status === 200) {
           // save data in a file with date and username ---
+          console.log(`Succesful response from Kotak Portfolio API`);
 
           const dataToSave = {data: res.data.data, date: new Date().toISOString().split('T')[0],user: spaceName };
 

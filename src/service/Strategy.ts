@@ -5,8 +5,9 @@ import {
   TwoStockDetails,
 } from "../models/common";
 import { FindStockService } from "./findStock";
-import { LoginService } from "./login";
 import { MarketDataService } from "./marketData";
+import brain from "./brain";
+import loginServiceObj from "./login";
 const FileSystem = require("fs");
 export abstract class Strategy {
   public strategyName: string;
@@ -16,7 +17,6 @@ export abstract class Strategy {
   protected marketDataService: MarketDataService;
   protected findStockService: FindStockService;
   protected orderController: OrderController;
-  protected loginService: LoginService;
 
   constructor(
     name: string,
@@ -29,7 +29,6 @@ export abstract class Strategy {
     this.dateToday = new Date().toISOString().split("T")[0];
     this.findStockService = new FindStockService();
     this.orderController = new OrderController();
-    this.loginService = new LoginService();
     this.marketDataService = new MarketDataService(); // may make it factory design pattern
   }
 
@@ -236,7 +235,7 @@ export class Strategy2 extends Strategy {
       countOfStock
     );
     this.doLog("Chosen stock - " + JSON.stringify(chosenStocks));
-    await this.loginService.deleteCreds();
+    await loginServiceObj.deleteCreds();
     let successOrderCount = 0;
     for (const stock of chosenStocks) {
       try {
@@ -264,6 +263,7 @@ export class Strategy2 extends Strategy {
     //check if already full for the day ?
     let stockAlreadyBought: number = this.getCachingDataForStockBoughtToday();
     if (stockAlreadyBought >= this.stockCountToBuy) {
+      brain.unsetKeepRunning();
       return;
     }
 
