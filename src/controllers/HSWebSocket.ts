@@ -7,7 +7,7 @@ import {
   RespCodes,
   ResponseTypes,
 } from "../models/socket";
-import { LoginService } from "../service/login";
+import loginServiceObj from "../service/login";
 import { ByteData } from "./byteData";
 import WebSocket from "ws";
 const pako = require("pako");
@@ -179,7 +179,6 @@ export class HSMWebSocket {
   private intermediateVariableForNiftyIndex: any;
   private intermediateVariableForSensexIndex: any;
   private intermediateVariableForStock: any;
-  protected loginService: LoginService;
   static channels: number[] = [];
   private ackNum: number;
   private counter: number;
@@ -192,7 +191,6 @@ export class HSMWebSocket {
     this.OPEN = 0;
     this.readyState = 0;
     this.url = HSMWebSocket.commonURL;
-    this.loginService = new LoginService();
     this.startServer();
   }
 
@@ -303,7 +301,7 @@ export class HSMWebSocket {
   // wrapper functions called by actual web sockets afterwards--
   // triggered by us ----
   public async onopen() {
-    this.creds = await this.loginService.login();
+    this.creds = await loginServiceObj.login();
     let req = this.prepareConnectionRequest2(this.creds.token, this.creds.sid);
 
     if (this.ws && req) {

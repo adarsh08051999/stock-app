@@ -1,13 +1,17 @@
 import { Strategy2 } from "./Strategy";
+import loginServiceObj from "./login";
+import { OrderService } from "./order";
 import { UpdateDbService } from "./updateDb";
 
 class BrainService {
   private isStarted: boolean;
   private keepRunning: boolean;
   protected updateDbService: UpdateDbService;
+  protected orderService: OrderService;
   constructor() {
     this.keepRunning = true;
     this.updateDbService = new UpdateDbService();
+    this.orderService = new OrderService();
   }
   public getIsStart() {
     return this.isStarted;
@@ -44,14 +48,25 @@ class BrainService {
 
   public async start(): Promise<any> {
     this.isStarted = true;
+    loginServiceObj.deleteCreds();
+
+    // place sell Order---
+    try {
+      await this.orderService.sellOrder();
+      console.log("BrainService: sell Order Placed successfully");
+    }
+    catch (err) {
+      console.log("BrainService: Error in sellOrder Placing");
+    }
+
+    // update Bought Stocks---
     try {
       await this.updateDbService.updateBought();
-      console.log(
-        "BrainService: updated Bought stock in Portfolio Successfully"
-      );
+      console.log("BrainService: updated Bought stock in Portfolio Successfully");
     } catch (err) {
       console.log("BrainService: Error in updateBought:please check");
     }
+
     const strategy = new Strategy2(3);
     while (this.keepRunning && this.isMarketHours()) {
       try {

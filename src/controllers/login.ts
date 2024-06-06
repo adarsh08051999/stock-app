@@ -1,18 +1,17 @@
 import { Request, Response } from 'express';
 import VError from 'verror';
 import { ApiCredentials } from '../models/common';
-import { LoginService } from '../service/login';
+import loginServiceObj from '../service/login';
+
 
 export class LoginController {
-    private loginService: LoginService;
 
     constructor() {
-        this.loginService = new LoginService();
     }
 
     public login = async (request: Request, response: Response): Promise<void> => {
         try{
-            let res:ApiCredentials = await this.loginService.login();
+            let res:ApiCredentials = await loginServiceObj.login();
             response.status(200).send(JSON.stringify(res));
         }
         catch(err){
@@ -24,7 +23,7 @@ export class LoginController {
 
     public deleteCreds = async (request: Request, response: Response): Promise<void> => {
         try{
-            await this.loginService.deleteCreds();
+            await loginServiceObj.deleteCreds();
             response.status(200).send(JSON.stringify("done successfully"));
         }
         catch(err){

@@ -12,7 +12,7 @@ export = {
     port: parseInt(process.env.RDS_PORT as string, 10),
     username: process.env.RDS_USERNAME,
     password: process.env.RDS_PASSWORD,
-    database: process.env.RDS_DB_NAME,
+    database: process.env.RDS_DB_NAME_NEW,
     logging: process.env.DB_QUERY_LOGGING === 'true',
     entities,
     migrations: [path.join(__dirname, 'migration', '*.*')],
