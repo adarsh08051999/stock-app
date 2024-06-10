@@ -37,7 +37,7 @@ class BrainService {
     }
 
     if (
-      (hour === 9 && min > 30) ||
+      (hour === 9 && min >= 15) ||
       (hour > 9 && hour < 15) ||
       (hour == 15 && min <= 30)
     ) {
