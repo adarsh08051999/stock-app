@@ -92,6 +92,7 @@ export class OrderService extends DBQuery {
       for (let x of portfolio) {
         stockIds.push(parseInt(x.exchangeIdentifier));
       }
+      if(stockIds.length === 0){console.log(`No order to place for sell`); return true;}
 
       let stockNamesIdMap = await this.fetchStockSymbolFromStockIds(stockIds);
       let success = 0, failure = 0;
