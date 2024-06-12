@@ -123,14 +123,14 @@ export class UpdateDbController {
       }
 
       this.updateDbService.updateDb();
-      response.status(200).send("Successfully Invoked the process");
     } catch (err) {
       const error: VError = new VError(
         `ERR in Update Db Controller ---  route ${(err as any)?.message}`
       );
       console.error(error.stack);
-      response.status(500).send(error);
     }
+
+    response.status(200).send("Successfully Invoked the process");
   };
 
   public updateBought = async (

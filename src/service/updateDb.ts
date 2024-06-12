@@ -70,6 +70,7 @@ export class UpdateDbService extends DBQuery {
     for(const x of portfolio){
       stockIds.push(x.exchangeIdentifier);
     }
+    if(stockIds.length === 0){console.log(`No stock to update for bought`); return stockIds;}
     await this.updateBoughtStock(stockIds);
     return stockIds;
   };
