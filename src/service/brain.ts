@@ -50,6 +50,15 @@ class BrainService {
     this.isStarted = true;
     loginServiceObj.deleteCreds();
 
+    // place sell Order---
+    try {
+      await this.orderService.sellOrder();
+      console.log("BrainService: sell Order Placed successfully");
+    }
+    catch (err) {
+      console.log("BrainService: Error in sellOrder Placing");
+    }
+
     // update Bought Stocks---
     try {
       await this.updateDbService.updateBought();
@@ -58,22 +67,8 @@ class BrainService {
       console.log("BrainService: Error in updateBought:please check");
     }
 
-    let firstTime: Boolean = true;
-
     const strategy = new Strategy2(3);
     while (this.keepRunning && this.isMarketHours()) {
-      if (firstTime) {
-        // place sell Order---
-        try {
-          await this.orderService.sellOrder();
-          firstTime = false;
-          console.log("BrainService: sell Order Placed successfully");
-        }
-        catch (err) {
-          console.log("BrainService: Error in sellOrder Placing");
-        }
-      }
-
       try {
         await strategy.startProcess();
       } catch (err) {
