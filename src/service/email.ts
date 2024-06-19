@@ -4,7 +4,7 @@ var axios = require("axios");
 var qs = require("qs");
 
 export class EmailService {
-  private accessToken:string;
+  private accessToken: string;
 
   constructor() {
   }
@@ -27,12 +27,12 @@ export class EmailService {
       data: data,
     };
 
-    try{
-        let res = await axios(config);
-        this.accessToken = res.data.access_token;
+    try {
+      let res = await axios(config);
+      this.accessToken = res.data.access_token;
     }
-    catch(err){
-        throw(err);
+    catch (err) {
+      throw (err);
     }
   };
 
@@ -46,52 +46,57 @@ export class EmailService {
       },
     };
     var threadId = "";
-    try{
-        let res = await axios(config);
-        threadId = await res.data["messages"][0].id;
+    try {
+      let res = await axios(config);
+      threadId = await res.data["messages"][0].id;
     }
-    catch(err){
-        throw(err);
+    catch (err) {
+      throw (err);
     }
     return threadId;
   };
 
-  private returnSnippet = async (threadId:string): Promise<string> => {
+  private returnSnippet = async (threadId: string): Promise<string> => {
     var config = {
       method: "get",
-      url: constants.EMAIL_URLS.SearchForThread +`${threadId}`,
+      url: constants.EMAIL_URLS.SearchForThread + `${threadId}`,
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
       },
     };
 
-    let snippet:string;
+    let snippet: string;
 
-    try{
-        let res = await axios(config);
-        snippet = await res.data.snippet;
+    try {
+      let res = await axios(config);
+      snippet = await res.data.snippet;
+      //check to handle that this mail shouldnt be old -- 
+      let minsPassed = (Date.now() - parseInt(res.data.internalDate)) / 60000;
+      if (minsPassed > 2) {
+        throw Error(`Read old Email minutes passed - ${minsPassed}`);
+      }
     }
-    catch(err){
-        throw(err);
+    catch (err) {
+      throw (err);
     }
 
     return snippet;
   };
 
-  private extractOtpFromHeading(heading:string):string {
+  private extractOtpFromHeading(heading: string): string {
     let regex = /\b\d{4}\b/g;
-    let matches:string[]|null = heading.match(regex);
-    if(matches){
-        return matches[0];
+    let matches: string[] | null = heading.match(regex);
+    if (matches) {
+      return matches[0];
     }
     throw new VError(`No matching OTP in heading ${heading}`);
   };
 
-  public async getOtpFromEmail():Promise<string>{
+  public async getOtpFromEmail(): Promise<string> {
     await this.getAccessToken();
     const threadId = await this.searchEmail();
     const headingSnippet = await this.returnSnippet(threadId);
-    const otp:string = this.extractOtpFromHeading(headingSnippet);
+    const otp: string = this.extractOtpFromHeading(headingSnippet);
     return otp;
   };
 }

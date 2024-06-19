@@ -11,7 +11,7 @@ export class LoginController {
 
     public login = async (request: Request, response: Response): Promise<void> => {
         try{
-            let res:ApiCredentials = await loginServiceObj.login();
+            let res:ApiCredentials = await loginServiceObj.getLoginCreds();
             response.status(200).send(JSON.stringify(res));
         }
         catch(err){

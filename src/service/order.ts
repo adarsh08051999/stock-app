@@ -52,7 +52,11 @@ export class OrderService extends DBQuery {
 
   public placeOrder = async (jData: JData): Promise<Object> => {
 
-    let creds: ApiCredentials = await loginServiceObj.login();
+    let creds: ApiCredentials = await loginServiceObj.getLoginCreds();
+    if(creds.accessToken === ''){
+      console.log(`Skipping order placing as empty login creds please check`);
+      throw new VError(`order placing stopped due to no creds`);
+    }
 
     const reqConfig: AxiosRequestConfig = {
       method: "post",
@@ -85,7 +89,11 @@ export class OrderService extends DBQuery {
   public sellOrder = async (): Promise<Boolean> => {
     try {
       // loginServiceObj.deleteCreds();
-      let creds = await loginServiceObj.login();
+      let creds = await loginServiceObj.getLoginCreds();
+      if(creds.accessToken === ''){
+        console.log(`Skipping order placing as empty login creds please check`);
+        throw new VError(`order placing stopped due to no creds`);
+      }
 
       let portfolio: PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
       let stockIds: number[] = [];

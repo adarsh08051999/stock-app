@@ -301,7 +301,7 @@ export class HSMWebSocket {
   // wrapper functions called by actual web sockets afterwards--
   // triggered by us ----
   public async onopen() {
-    this.creds = await loginServiceObj.login();
+    this.creds = await loginServiceObj.getLoginCreds();
     let req = this.prepareConnectionRequest2(this.creds.token, this.creds.sid);
 
     if (this.ws && req) {

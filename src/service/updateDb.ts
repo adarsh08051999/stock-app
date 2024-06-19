@@ -64,7 +64,7 @@ export class UpdateDbService extends DBQuery {
   };
 
   public updateBought = async (): Promise<string[]> => {
-    let creds = await loginServiceObj.login();
+    let creds = await loginServiceObj.getLoginCreds();
     let portfolio:PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
     let stockIds:string[]=[];
     for(const x of portfolio){
@@ -76,7 +76,7 @@ export class UpdateDbService extends DBQuery {
   };
 
   public resetSold = async (): Promise<any> => {
-    let creds = await loginServiceObj.login();
+    let creds = await loginServiceObj.getLoginCreds();
     let portfolio:PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
     let stockIds:string[]=[];
     for(const x of portfolio){

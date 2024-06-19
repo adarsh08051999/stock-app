@@ -46,10 +46,7 @@ class BrainService {
     return false;
   }
 
-  public async start(): Promise<any> {
-    this.isStarted = true;
-    loginServiceObj.deleteCreds();
-
+  public async preMarketStuff(): Promise<void> {
     // place sell Order---
     try {
       await this.orderService.sellOrder();
@@ -67,8 +64,19 @@ class BrainService {
       console.log("BrainService: Error in updateBought:please check");
     }
 
+  }
+
+  public async start(): Promise<any> {
+    this.isStarted = true;
+    await loginServiceObj.deleteCreds();
+
     const strategy = new Strategy2(3);
+    let firstTime:Boolean = true;
     while (this.keepRunning && this.isMarketHours()) {
+      if(firstTime){
+        await this.preMarketStuff();
+        firstTime = false;
+      }
       try {
         await strategy.startProcess();
       } catch (err) {
