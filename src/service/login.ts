@@ -1,6 +1,6 @@
 import VError from 'verror';
-import { OAuth2Response,ValidateResponse } from '../models/login';
-import {ApiCredentials} from '../models/common'
+import { OAuth2Response, ValidateResponse } from '../models/login';
+import { ApiCredentials } from '../models/common'
 import constants from '../constants/common'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { jwtDecode } from "jwt-decode";
@@ -8,68 +8,77 @@ import qs from "qs";
 import { EmailService } from './email';
 
 class LoginService {
-    static accessToken: string|null;
-    static token:string|null;
-    static sid:string|null;
-    static userId:string|undefined|null;
-    static hsServerId: string|undefined|null;
+    static accessToken: string | null;
+    static token: string | null;
+    static sid: string | null;
+    static userId: string | undefined | null;
+    static hsServerId: string | undefined | null;
 
-    protected emailService:EmailService;
+    protected emailService: EmailService;
     constructor() {
         this.emailService = new EmailService();
     }
 
-    public deleteCreds = async (): Promise<void> => {
-        LoginService.accessToken = null;
-        LoginService.token = null;
-        LoginService.sid = null;
-        LoginService.userId = null;
-        LoginService.hsServerId = null;
+    public generateNewCreds = async (count: number): Promise<void> => {
+        if (count === 0) { console.log(`Could not refresh credentials`); return; }
+
+        try {
+            let responseFromConsumerKeyForAccessToken: OAuth2Response = await this.OAuthUsingConsumerData();
+            let newAccessToken: string = "Bearer " + responseFromConsumerKeyForAccessToken.access_token;
+
+            let responseFromValidateReq: ValidateResponse = await this.generateTokenUsingPassword(newAccessToken);
+            let tempToken = responseFromValidateReq.token;
+            let tempSid = responseFromValidateReq.sid;
+            let newUserId = jwtDecode(tempToken)?.sub;
+
+            console.log("Requesting OTP Generation...");
+            let isOtpGenerated: Boolean = false;
+            try {
+                isOtpGenerated = await this.generateOtpOnEmail(newUserId, newAccessToken);
+            }
+            catch (err) {
+                console.log(`OTP generate API threw error`);
+            }
+
+            console.log("OTP Generation req made finished...");
+            await new Promise(resolve => setTimeout(resolve, 12000)); // pause of 45 sec for OTP recieve -
+            let otp = await this.emailService.getOtpFromEmail();
+            console.log(`OTP IS ${otp}`);
+            let responseFromValidateReqUsingOtp: ValidateResponse = await this.generateTokenUsingOtpAndEnableOrder(otp, tempToken, tempSid, newUserId, newAccessToken);
+
+            LoginService.accessToken = newAccessToken;
+            LoginService.userId = newUserId;
+            LoginService.token = responseFromValidateReqUsingOtp.token;
+            LoginService.sid = responseFromValidateReqUsingOtp.sid;
+            LoginService.hsServerId = responseFromValidateReqUsingOtp.hsServerId;
+
+        } catch (err) {
+            console.log(`Trying to generate new Credentials again`);
+            console.log(`Cred refresh Error - ${(err as any)?.message}`);
+            await new Promise(resolve => setTimeout(resolve, 20000));
+            await this.generateNewCreds(count - 1);
+        }
+
     }
 
 
-    public login = async (): Promise<ApiCredentials> => {
-        let accessToken:string|null = LoginService.accessToken;
-        let token:string|null = LoginService.token;
-        let sid:string|null = LoginService.sid;
-        let userId:string|null|undefined = LoginService.userId;
-        let hsServerId:string|null|undefined = LoginService.hsServerId;
 
-        if(accessToken && token && sid && userId && hsServerId){
-            return {token,sid, accessToken, userId, hsServerId};
-        }
-        try{
-            let responseFromConsumerKeyForAccessToken: OAuth2Response = await this.OAuthUsingConsumerData();
-            LoginService.accessToken = "Bearer " + responseFromConsumerKeyForAccessToken.access_token;
+    public deleteCreds = async (): Promise<void> => {
+        await this.generateNewCreds(2);
+    }
 
-            let responseFromValidateReq: ValidateResponse = await this.generateTokenUsingPassword();
-            let tempToken = responseFromValidateReq.token;
-            let tempSid = responseFromValidateReq.sid;
-            LoginService.userId = jwtDecode(tempToken)?.sub;
 
-            console.log("Requesting OTP Generation...");
-            let isOtpGenerated:Boolean = false;
-            try{
-                isOtpGenerated = await this.generateOtpOnEmail();
-            }
-            catch(err){
-                console.log(`OTP generate API threw error`);
-            }
-            console.log("OTP Generation req made finished...");
-            await new Promise(resolve => setTimeout(resolve, 8000)); // pause of 5 sec for OTP recieve -
-            let otp = await this.emailService.getOtpFromEmail();
-            console.log(`OTP IS ${otp}`);
-            let responseFromValidateReqUsingOtp: ValidateResponse = await this.generateTokenUsingOtpAndEnableOrder(otp,tempToken,tempSid);
-            LoginService.token = responseFromValidateReqUsingOtp.token;
-            LoginService.sid = responseFromValidateReqUsingOtp.sid;
-            LoginService.hsServerId = responseFromValidateReqUsingOtp.hsServerId; 
-            return {token: LoginService.token,sid: LoginService.sid, accessToken: LoginService.accessToken, userId: LoginService.userId , hsServerId: LoginService.hsServerId};
-        }
-        catch(err){
-            console.log(`DANGER IF TOO MANY REPEATAION AS IT IS IN RECURSION LOOP`);
-            console.log(`Login Service Error - ${(err as any)?.message}`);
-            return this.login();
-        }
+    public getLoginCreds = async (): Promise<ApiCredentials> => {
+        let accessToken: string | null = LoginService.accessToken || '';
+        let token: string = LoginService.token || '';
+        let sid: string = LoginService.sid || '';
+        let userId: string = LoginService.userId || '';
+        let hsServerId: string = LoginService.hsServerId || '';
+
+        // if (!(accessToken && token && sid && userId && hsServerId)) {
+        //     await this.generateNewCreds(2);
+        // }
+        return { token, sid, accessToken, userId, hsServerId };
     }
 
     private OAuthUsingConsumerData = async (): Promise<OAuth2Response> => {
@@ -90,10 +99,10 @@ class LoginService {
         if (res.status === 200) {
             return res.data;
         }
-        throw(new VError(`Failed to get Access token ${res.status}`));
+        throw (new VError(`Failed to get Access token ${res.status}`));
     }
 
-    private generateTokenUsingPassword = async (): Promise<ValidateResponse> => {
+    private generateTokenUsingPassword = async (access_token: string): Promise<ValidateResponse> => {
         let credSpace = (process.env.APP_ENV === 'prod') ? constants.USERS_CREDS.VINAY : constants.USERS_CREDS.ADARSH;
 
         const reqConfig: AxiosRequestConfig = {
@@ -105,37 +114,37 @@ class LoginService {
             },
             headers: {
                 'content-type': 'application/json',
-                'Authorization': LoginService.accessToken
+                'Authorization': access_token
             },
         };
         let res;
-        try{
+        try {
             res = await axios(reqConfig);
         }
-        catch(err){
+        catch (err) {
             console.log((err as any)?.message);
-            throw(new VError(`Axios failed for generateTokenUsingPassword`));
+            throw (new VError(`Axios failed for generateTokenUsingPassword`));
         }
-        
+
         if (res?.status === 201) {
             return res.data.data;
         }
-        throw(new VError(`Failed to get Access token ${res?.status}`));
+        throw (new VError(`Failed to get Access token ${res?.status}`));
     }
 
-    private generateOtpOnEmail = async (): Promise<Boolean> => {
+    private generateOtpOnEmail = async (userId: string | undefined, access_token: string): Promise<Boolean> => {
 
         const reqConfig: AxiosRequestConfig = {
             method: 'post',
             url: constants.KOTAK_LOGIN_URLS.GenerateOtpUrl,
             data: {
-                "userId": LoginService.userId,
+                "userId": userId,
                 "sendEmail": true,
                 "isWhitelisted": true
             },
             headers: {
                 'content-type': 'application/json',
-                'Authorization': LoginService.accessToken
+                'Authorization': access_token
             },
         };
 
@@ -146,12 +155,12 @@ class LoginService {
         return false;
     }
 
-    private generateTokenUsingOtpAndEnableOrder = async (otp: string, token:string, sid:string): Promise<ValidateResponse> => {
+    private generateTokenUsingOtpAndEnableOrder = async (otp: string, token: string, sid: string, userId: string | undefined, accessToken: string): Promise<ValidateResponse> => {
         const reqConfig: AxiosRequestConfig = {
             method: 'post',
             url: constants.KOTAK_LOGIN_URLS.ValidateUrl,
             data: {
-                "userId": LoginService.userId,
+                "userId": userId,
                 "otp": otp,
             },
             headers: {
@@ -159,7 +168,7 @@ class LoginService {
                 'Content-type': 'application/json',
                 'sid': sid,
                 'Auth': token,
-                'Authorization': LoginService.accessToken
+                'Authorization': accessToken
             },
         };
 
@@ -167,7 +176,7 @@ class LoginService {
         if (res.status === 201) {
             return res.data.data;
         }
-        throw(new VError(`Failed to get Access token ${res.status}`));
+        throw (new VError(`Failed to get Access token ${res.status}`));
     }
 
 }

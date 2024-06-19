@@ -14,7 +14,7 @@ export class PortfolioController {
 
     public getPortfolio = async (request: Request, response: Response): Promise<void> => {
         try {
-            this.creds = await loginServiceObj.login();
+            this.creds = await loginServiceObj.getLoginCreds();
             let res: PortfolioResp[] = await this.portfolioService.getPortfolio(this.creds);
             response.status(200).send(res);
         } catch (err) {
