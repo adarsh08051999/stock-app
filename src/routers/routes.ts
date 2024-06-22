@@ -32,6 +32,7 @@ export class Router {
     router.get("/getOtpFromEmail", emailController.getOtpFromEmail);
     router.get("/login", loginController.login);
     router.get("/deleteCreds", loginController.deleteCreds);
+    router.get('/sendEmail', emailController.sendEmail);
     // ----
 
     // start stop brain service

@@ -18,4 +18,16 @@ export class EmailController {
             response.status(500).send(error);
         }
     };
+
+
+    public sendEmail = async (request: Request, response: Response): Promise<void> => {
+        try {
+            let data = (request.query.data as string);
+            let res: Boolean = await this.emailService.sendEmail(data);
+            response.status(200).send(`email Sent successfully- ${res}`);
+        } catch (err) {
+            const error: VError = new VError(`ERR in Email Sending route ${(err as any)?.message}`);
+            response.status(500).send(error);
+        }
+    };
 }
