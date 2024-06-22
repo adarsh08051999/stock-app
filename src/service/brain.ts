@@ -1,6 +1,9 @@
+import { PortfolioResp } from "../models/common";
 import { Strategy2 } from "./Strategy";
+import { EmailService } from "./email";
 import loginServiceObj from "./login";
 import { OrderService } from "./order";
+import { PortfolioService } from "./portfolio";
 import { UpdateDbService } from "./updateDb";
 
 class BrainService {
@@ -8,10 +11,14 @@ class BrainService {
   private keepRunning: boolean;
   protected updateDbService: UpdateDbService;
   protected orderService: OrderService;
+  protected portfolioService: PortfolioService;
+  protected emailService: EmailService;
   constructor() {
     this.keepRunning = true;
     this.updateDbService = new UpdateDbService();
     this.orderService = new OrderService();
+    this.portfolioService = new PortfolioService();
+    this.emailService = new EmailService();
   }
   public getIsStart() {
     return this.isStarted;
@@ -64,16 +71,26 @@ class BrainService {
       console.log("BrainService: Error in updateBought:please check");
     }
 
+    try {
+      let creds = await loginServiceObj.getLoginCreds();
+      let portfolio: PortfolioResp[] = await this.portfolioService.getPortfolio(creds);
+      let data: string = '<h1>Portfolio Records - </h1><br><br>';
+      portfolio.forEach((stockDetails) => {
+        data = data + `Stock Data: <b>${stockDetails.displaySymbol}</b> <br>Quantity: <b> ${stockDetails.quantity} <br></b> Change(%): <b> ${(Math.round(100 * 100 * (stockDetails.closingPrice - stockDetails.averagePrice) / (stockDetails.averagePrice))) / 100} </b> <br><br><br> `
+      });
+      this.emailService.sendEmail(data);
+    } catch (err) {
+      console.log("BrainService: Failed to process Sending Email");
+    }
   }
 
   public async start(): Promise<any> {
     this.isStarted = true;
     await loginServiceObj.deleteCreds();
-
     const strategy = new Strategy2(3);
-    let firstTime:Boolean = true;
+    let firstTime: Boolean = true;
     while (this.keepRunning && this.isMarketHours()) {
-      if(firstTime){
+      if (firstTime) {
         await this.preMarketStuff();
         firstTime = false;
       }

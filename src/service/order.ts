@@ -6,16 +6,27 @@ import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { DBQuery } from "./dbQuery";
 import loginServiceObj from "./login";
 import { PortfolioService } from "./portfolio";
+import { EmailService } from "./email";
 var qs = require("qs");
 
 export class OrderService extends DBQuery {
+
   public lastDeleted: any;
   protected portfolioService: PortfolioService;
+  protected emailService: EmailService;
   constructor() {
     super();
     this.portfolioService = new PortfolioService();
+    this.emailService = new EmailService();
   }
+  private prepareAndSendMail(jData: JData) {
+    try {
+      this.emailService.sendEmail(`<h1> <b>${jData.tt}</b> Order placed at exchange for ${jData.ts} quantity ${jData.qt} </h1>`);
+    } catch (err) {
+      console.log(`Failed to send Email on order placing.`);
+    }
 
+  }
   private calculateSellPrice(averagePrice: number) {
     averagePrice = 1.0999 * averagePrice;
     let number = Math.floor(averagePrice);
@@ -53,7 +64,7 @@ export class OrderService extends DBQuery {
   public placeOrder = async (jData: JData): Promise<Object> => {
 
     let creds: ApiCredentials = await loginServiceObj.getLoginCreds();
-    if(creds.accessToken === ''){
+    if (creds.accessToken === '') {
       console.log(`Skipping order placing as empty login creds please check`);
       throw new VError(`order placing stopped due to no creds`);
     }
@@ -79,6 +90,7 @@ export class OrderService extends DBQuery {
     if (res.status === 200 && res.statusText == "OK") {
       if (jData.tt == "S" && res.data.stat != "Ok") {
       } else {
+        this.prepareAndSendMail(jData);
         return res.data;
       }
     }
@@ -90,7 +102,7 @@ export class OrderService extends DBQuery {
     try {
       // loginServiceObj.deleteCreds();
       let creds = await loginServiceObj.getLoginCreds();
-      if(creds.accessToken === ''){
+      if (creds.accessToken === '') {
         console.log(`Skipping order placing as empty login creds please check`);
         throw new VError(`order placing stopped due to no creds`);
       }
@@ -100,7 +112,7 @@ export class OrderService extends DBQuery {
       for (let x of portfolio) {
         stockIds.push(parseInt(x.exchangeIdentifier));
       }
-      if(stockIds.length === 0){console.log(`No order to place for sell`); return true;}
+      if (stockIds.length === 0) { console.log(`No order to place for sell`); return true; }
 
       let stockNamesIdMap = await this.fetchStockSymbolFromStockIds(stockIds);
       let success = 0, failure = 0;

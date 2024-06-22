@@ -2,6 +2,16 @@ import VError from 'verror';
 import constants from '../constants/common'
 var axios = require("axios");
 var qs = require("qs");
+var nodemailer = require('nodemailer');
+
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  secure: false,
+  auth: {
+    user: 'vickykumarfcc98@gmail.com',
+    pass: 'vubz jddk zgvf qask'
+  }
+});
 
 export class EmailService {
   private accessToken: string;
@@ -98,5 +108,25 @@ export class EmailService {
     const headingSnippet = await this.returnSnippet(threadId);
     const otp: string = this.extractOtpFromHeading(headingSnippet);
     return otp;
+  };
+
+  public async sendEmail(data: string): Promise<Boolean> {
+    let name: string = (process.env.APP_ENV === 'prod') ? constants.USERS_CREDS.VINAY.NAME : constants.USERS_CREDS.ADARSH.NAME;
+    var mailOption: any = {
+      from: 'vickykumarfcc98@gmail.com',
+      to: ((process.env.APP_ENV === 'prod') ? constants.USERS_CREDS.VINAY.EMAIL.EMAIL_ID : constants.USERS_CREDS.ADARSH.EMAIL.EMAIL_ID),
+      subject: 'Stock Automation Status update',
+      html: `<h1>Hi ${name} !! </h1><p>${data}</p>`,
+    };
+
+    await transporter.sendMail(mailOption, function (error: any, info: { response: string; }) {
+      if (error) {
+        console.log(error);
+        return false;
+      } else {
+        console.log('Email sent: ' + info.response);
+      }
+    });
+    return true;
   };
 }
